@@ -6,7 +6,9 @@ set -e
 exec 3>&1 # make stdout available as fd 3 for the result
 exec 1>&2 # redirect all output to stderr for logging
 
-url='vspiewak/c203d38508e35e7887a45f72a1727682/raw/d8a3d850cb216e16da5aa3fbc0011423797c736b/gistfile1.txt'
+payload=$(mktemp $TMPDIR/concourse-job-parameters-resource-request.XXXXXX)
+
+url=$(jq -r '.source.url // ""' < $payload)
 
 jq -n "[
   {\"ref\": \"$url\"}
