@@ -22,9 +22,17 @@ cd $destination
 
 json=$(curl "https://gist.githubusercontent.com/$last_ref")
 
-metadatas=$(echo $json | jq -r 'to_entries' | sed -e 's/"key":/"name":/g')
+metas=$(echo $json | jq -r 'to_entries | map({name: .key, value: .value | tostring })')
+
+json_keys=$(echo $json | jq -r 'keys[]')
+
+while read -r key
+do
+  value=$(echo $json | jq -r ".$key")
+  echo "$value" > $key
+done <<< "$json_keys"
 
 jq -n "{
   \"version\": {\"ref\": \"$last_ref\"},
-  \"metadata\": $metadatas
+  \"metadata\": $metas
 }" >&3
