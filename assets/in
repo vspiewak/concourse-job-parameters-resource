@@ -1,0 +1,52 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e
+
+exec 3>&1 # make stdout available as fd 3 for the result
+exec 1>&2 # redirect all output to stderr for logging
+
+destination=$1
+
+payload=$(mktemp $TMPDIR/concourse-job-parameters-resource-request.XXXXXX)
+cat > $payload <&0
+
+last_ref=$(jq -r '.version.ref // ""' < $payload)
+
+if [ -z "$destination" ]; then
+  echo "usage: $0 <path/to/destination>" >&2
+  exit 1
+fi
+
+cd $destination
+
+curl -o raw.json 'https://gist.githubusercontent.com/$last_ref'
+
+metadatas=$(cat raw.json | jq -r 'to_entries' | sed -e 's/"key":/"name":/g')
+
+all_keys=()
+for key_pattern in "${keys[@]}"
+do
+  while read -r
+  do
+    all_keys+=($REPLY)
+  done < <(eval "redis-cli --raw $connect_opts keys '${key_pattern}'")
+done
+
+if [[ "${#all_keys[@]}" -eq 0 ]]
+then
+  new_ref=0
+else
+  for key in "${all_keys[@]}"
+  do
+    # eval for the compound connect opts
+    # sed removes the extraneous newline that redis-cli adds to output
+    eval "redis-cli --raw $connect_opts get '${key}'" | sed '$d' > ${key}
+  done
+  new_ref="$(calc_reference all_keys[@])"
+fi
+
+jq -n "{
+  \"version\": {\"ref\": \"$last_ref\"},
+  \"metadata\": $metadatas
+}" >&3
