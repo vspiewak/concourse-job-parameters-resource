@@ -20,7 +20,7 @@ fi
 
 cd $destination
 
-curl -o raw.json 'https://gist.githubusercontent.com/$last_ref'
+curl -o raw.json "https://gist.githubusercontent.com/$last_ref"
 
 metadatas=$(cat raw.json | jq -r 'to_entries' | sed -e 's/"key":/"name":/g')
 
