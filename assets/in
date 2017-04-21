@@ -24,28 +24,6 @@ curl -o raw.json "https://gist.githubusercontent.com/$last_ref"
 
 metadatas=$(cat raw.json | jq -r 'to_entries' | sed -e 's/"key":/"name":/g')
 
-all_keys=()
-for key_pattern in "${keys[@]}"
-do
-  while read -r
-  do
-    all_keys+=($REPLY)
-  done < <(eval "redis-cli --raw $connect_opts keys '${key_pattern}'")
-done
-
-if [[ "${#all_keys[@]}" -eq 0 ]]
-then
-  new_ref=0
-else
-  for key in "${all_keys[@]}"
-  do
-    # eval for the compound connect opts
-    # sed removes the extraneous newline that redis-cli adds to output
-    eval "redis-cli --raw $connect_opts get '${key}'" | sed '$d' > ${key}
-  done
-  new_ref="$(calc_reference all_keys[@])"
-fi
-
 jq -n "{
   \"version\": {\"ref\": \"$last_ref\"},
   \"metadata\": $metadatas
