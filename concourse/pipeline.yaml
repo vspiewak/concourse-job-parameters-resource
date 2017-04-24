@@ -1,0 +1,36 @@
+resource_types:
+  - name: concourse-job-parameters
+    type: docker-image
+    source:
+      repository: vspiewak/concourse-job-parameters-resource
+      tag: latest
+
+resources:
+  - name: job-parameters
+    type: concourse-job-parameters
+    source:
+      url: 'https://gist.githubusercontent.com/vspiewak/c203d38508e35e7887a45f72a1727682/raw/800362b0157a61be0fe7f46f0ecffa11066b0e15/gistfile1.txt'
+
+jobs:
+  - name: show-parameters
+    plan:
+      - get: job-parameters
+        trigger: true
+
+      - task: show-parameters-task
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: ubuntu}
+          inputs:
+            - name: job-parameters
+          run:
+            path: sh
+            dir: job-parameters
+            args:
+            - -exc
+            - |
+              pwd
+              ls -al
+              for f in *; do echo "file: $f"; cat "$f"; done
