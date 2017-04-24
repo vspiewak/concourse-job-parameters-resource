@@ -11,6 +11,6 @@ cat > $payload <&0
 
 url=$(jq -r '.source.url // ""' < $payload)
 
-refs=$(curl $url | jq -r '[ .[] | { "ref" : .ref } ]')
+refs=$(curl $url | jq -r '[ .[] | { "ref" : .ref } ]')
 
 jq -n "$refs" >&3
