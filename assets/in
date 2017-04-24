@@ -11,6 +11,7 @@ destination=$1
 payload=$(mktemp $TMPDIR/concourse-job-parameters-resource-request.XXXXXX)
 cat > $payload <&0
 
+url=$(jq -r '.source.url // ""' < $payload)
 last_ref=$(jq -r '.version.ref // ""' < $payload)
 
 if [ -z "$destination" ]; then
@@ -20,15 +21,15 @@ fi
 
 cd $destination
 
-json=$(curl "https://gist.githubusercontent.com/$last_ref")
+json=$(curl $url | jq -r --arg "REF" "$last_ref" '.[] | select(.ref==$REF)')
 
-metas=$(echo $json | jq -r 'to_entries | map({name: .key, value: .value | tostring })')
+metas=$(echo $json | jq -r '.params | to_entries | map({name: .key, value: .value | tostring })')
 
-json_keys=$(echo $json | jq -r 'keys[]')
+json_keys=$(echo $json | jq -r '.params | keys[]')
 
 while read -r key
 do
-  value=$(echo $json | jq -r ".$key")
+  value=$(echo $json | jq -r ".params.$key")
   echo "$value" > $key
 done <<< "$json_keys"
 
